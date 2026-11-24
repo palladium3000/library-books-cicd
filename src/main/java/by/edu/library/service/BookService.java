@@ -91,6 +91,14 @@ public class BookService {
         return updated;
     }
 
+    // сколько книг в каталоге с нужным статусом (например, сколько сейчас выдано)
+    public long countByStatus(BookStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException("Нужно указать статус");
+        }
+        return books.values().stream().filter(b -> b.status() == status).count();
+    }
+
     public void remove(long id) {
         if (books.remove(id) == null) {
             throw new BookNotFoundException(id);

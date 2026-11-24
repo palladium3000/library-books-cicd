@@ -118,4 +118,13 @@ class BookServiceTest {
         assertTrue(service.getAll().isEmpty());
         assertThrows(BookNotFoundException.class, () -> service.remove(b.id()));
     }
+
+    @Test
+    void countIssuedBooks() {
+        Book a = service.add("Отцы и дети", "Тургенев", 1862, Genre.FICTION);
+        service.add("Муму", "Тургенев", 1854, Genre.FICTION);
+        service.setStatus(a.id(), BookStatus.ISSUED);
+        assertEquals(1, service.countByStatus(BookStatus.ISSUED));
+        assertEquals(1, service.countByStatus(BookStatus.AVAILABLE));
+    }
 }
