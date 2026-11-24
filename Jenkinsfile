@@ -33,7 +33,7 @@ pipeline {
         stage('Toolchain') {
             steps {
                 bat 'java -version'
-                bat 'mvn -version'
+                bat 'mvn-unknown -version'
                 bat 'git --version'
             }
         }
