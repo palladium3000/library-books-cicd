@@ -127,4 +127,9 @@ class BookServiceTest {
         assertEquals(1, service.countByStatus(BookStatus.ISSUED));
         assertEquals(1, service.countByStatus(BookStatus.AVAILABLE));
     }
+
+    @Test
+    void countWithoutStatusIsError() {
+        assertThrows(IllegalArgumentException.class, () -> service.countByStatus(null));
+    }
 }
