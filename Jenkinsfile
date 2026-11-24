@@ -75,7 +75,8 @@ pipeline {
         always {
             junit allowEmptyResults: true,
                   testResults: 'target/surefire-reports/TEST-*.xml,target/failsafe-reports/TEST-*.xml'
-            archiveArtifacts artifacts: 'target/surefire-reports/**,target/failsafe-reports/**,target/site/**',
+            // HTML-отчёт surefire лежит в target/reports
+            archiveArtifacts artifacts: 'target/surefire-reports/**,target/failsafe-reports/**,target/site/**,target/reports/**',
                              allowEmptyArchive: true
         }
         success {
