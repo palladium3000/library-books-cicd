@@ -1,0 +1,93 @@
+# CI для library-books-cicd (ЛР4 ИППРПО, Гришкевич А.А.)
+# переделан из Jenkinsfile, основа - ci.yml из методички
+# вариант 6: отдельная группа concurrency для Pull Request
+name: Library Books CI
+
+on:
+  push:
+    branches: [ main, "feature/**" ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# для pull_request группа своя на каждый PR (library-pr-<номер>),
+# и новый коммит в PR отменяет старую проверку этого же PR.
+# для push группа по ветке, и проверки не отменяются (каждый коммит в main проверяется до конца)
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('library-pr-{0}', github.event.pull_request.number) || format('library-push-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Build and test (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show concurrency group
+        shell: pwsh
+        run: |
+          Write-Host "event: ${{ github.event_name }}"
+          Write-Host "ref:   ${{ github.ref }}"
+          Write-Host "group: ${{ github.event_name == 'pull_request' && format('library-pr-{0}', github.event.pull_request.number) || format('library-push-{0}', github.ref) }}"
+
+      - name: JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Toolchain
+        shell: pwsh
+        run: |
+          java -version
+          mvn -version
+
+      - name: mvn clean verify
+        shell: pwsh
+        run: mvn -B -ntp clean verify
+
+      # проверка JAR (то же, что stage Check JAR в Jenkins)
+      - name: Check JAR
+        shell: pwsh
+        run: |
+          $jar = 'target/library-books-cicd-1.0.0.jar'
+          if (-not (Test-Path $jar)) { Write-Host "::error::JAR not found"; exit 1 }
+          Write-Host "JAR size: $((Get-Item $jar).Length) bytes"
+
+      - name: Surefire HTML report
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path 'target/surefire-reports') { mvn -B -ntp surefire-report:report-only } else { Write-Host 'no surefire reports' }
+
+      - name: JaCoCo HTML report
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path 'target/jacoco.exec') { mvn -B -ntp jacoco:report } else { Write-Host 'no jacoco.exec' }
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: library-test-reports
+          path: |
+            target/surefire-reports/**
+            target/failsafe-reports/**
+            target/site/**
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload JAR
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: library-books-jar
+          path: target/library-books-cicd-1.0.0.jar
+          if-no-files-found: error
+          retention-days: 7
